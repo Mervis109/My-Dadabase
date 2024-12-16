@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css/feedback.css"> <!-- Link to CSS for styling -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for charting -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery for simpler DOM manipulation -->
+</head>
+<body>
+    <nav>
+        <h2>Hola</h2>
+        <ul>
+            <li id="polls">Polls</li>
+            <li id="reports">Reports</li>
+            <li id="notifications">Notifications</li>
+            <li id="feedback">Feedback</li>
+            <li id="charts">Charts</li>
+            <li id="Logout" onclick="logoutUser()">LogOut</li>
+            <script>
+     function logoutUser() {
+    if (confirm("Are you sure you want to log out?")) {
+        sessionStorage.clear(); // Clear session data
+        window.location.href = "login.html"; // Redirect
+    }
+}
+
+                let navVisible = false;   // State for navigation visibility
+                const nav = document.querySelector('nav'); // Select the nav element
+                let inactivityTimeout;     // Declare a timeout variable
+                
+                // Function to show navigation by adding 'active' class
+                function showNavigation() {
+                    if (!navVisible) {
+                        nav.classList.add('active'); // Slide in the navigation
+                        navVisible = true;            // Update visibility state
+                        resetTimeout();               // Reset the inactivity timer
+                    }
+                }
+            
+                // Function to hide navigation after 5 seconds of inactivity
+                function hideNavigation() {
+                    if (navVisible) {
+                        nav.classList.remove('active'); // Slide out the navigation
+                        navVisible = false;              // Update visibility state
+                    }
+                }
+            
+                // Reset the inactivity timeout
+                function resetTimeout() {
+                    clearTimeout(inactivityTimeout); // Clear existing timeout
+                    inactivityTimeout = setTimeout(hideNavigation, 4000); // Set new timeout for 5 seconds
+                }
+            
+                // Event listeners to detect user interaction
+                document.addEventListener('mousemove', showNavigation); // Show nav on mouse move
+                document.addEventListener('click', showNavigation);      // Show nav on click
+            
+                // Call the show navigation function on page load
+                // Optionally remove this if you do not want automatic showing on load
+             document.addEventListener('DOMContentLoaded', showNavigation); 
+             document.querySelector('form').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent default form submission
+        
+        let title = event.target.title.value;
+        let description = event.target.description.value;
+        
+        // Create feedback item and append to the feedback container
+        let feedbackContainer = document.getElementById('feedback-container');
+        let feedbackItem = document.createElement('div');
+        
+        feedbackItem.className = 'feedback-item';
+        feedbackItem.innerHTML = `<strong>${title}</strong><p>${description}</p>`;
+
+        // Animate the feedback item
+        feedbackItem.style.opacity = 0;
+        feedbackItem.style.transform = 'translateY(-10px)';
+        feedbackContainer.appendChild(feedbackItem);
+
+        setTimeout(() => {
+            feedbackItem.style.opacity = 1;
+            feedbackItem.style.transform = 'translateY(0)';
+        }, 50); // Slight delay for the animation
+
+        // Reset the form
+        event.target.reset();
+    });
+
+            </script>
+
+        </ul>
+    </nav>
+   
+    </div>
+
+    <main>
+        <section id="polls" class="poll-section">
+            <h4>What Is Your Opinion</h4>
+            <div id="poll-container" class="poll-container"></div>
+            <button id="add-poll-button" class="poll-button">Add Poll</button>
+            <button id="view-polls-button" class="poll-button">View Polls</button>
+            <button id="submit-button" class="submit-button" onclick="submitAllVotes()">Submit All Votes</button>
+        </section>
+    
+        <script>
+            const apiUrl = 'polls.php'; // URL to the PHP file for backend interaction
+    
+            // Sample questions based on Zambian affairs
+            const samplePolls = [
+                { id: 1, question: "Should Zambia implement stricter regulations on political rallies?", options: [] },
+                { id: 2, question: "Is the Electoral Commission of Zambia adequately managing elections?", options: [] },
+                { id: 3, question: "Should the government ensure freedom of the press?", options: [] },
+                { id: 4, question: "Is the current political climate in Zambia favorable for opposition parties?", options: [] },
+                { id: 5, question: "Do you support the government's efforts to reduce corruption?", options: [] }
+            ];
+    
+            // On page load, display initial polls
+            document.addEventListener('DOMContentLoaded', () => {
+                renderPolls(samplePolls); // Render sample polls
+            });
+    
+            // View Polls
+            function viewPolls() {
+                fetch(`${apiUrl}?action=getPolls`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Network response was not ok");
+                        return response.json();
+                    })
+                    .then(data => renderPolls(data))
+                    .catch(error => console.error('Error fetching polls:', error));
+            }
+    
+            // Render Polls
+            function renderPolls(polls) {
+                const pollContainer = document.getElementById("poll-container");
+                pollContainer.innerHTML = ''; // Clear existing content
+                polls.forEach(poll => {
+                    const pollCard = createPollCard(poll);
+                    pollContainer.appendChild(pollCard);
+                });
+            }
+    
+            // Create Poll Card
+            function createPollCard(poll) {
+                const pollDiv = document.createElement("div");
+                pollDiv.className = "poll-card"; // Class for styling
+                pollDiv.innerHTML = `
+                    <strong>${poll.question}</strong>
+                    <div class="options">
+                        <div class="circle" id="yes-circle-${poll.id}" onclick="selectOption('yes', ${poll.id})">
+                            <div class="dot yes"></div>
+                        </div>
+                        <div class="circle no" id="no-circle-${poll.id}" onclick="selectOption('no', ${poll.id})">
+                            <div class="dot no"></div>
+                        </div>
+                    </div>
+                `;
+                return pollDiv;
+            }
+    
+            // Select Option
+            function selectOption(answer, pollId) {
+                // Reset previous selection
+                const yesCircle = document.getElementById(`yes-circle-${pollId}`);
+                const noCircle = document.getElementById(`no-circle-${pollId}`);
+                yesCircle.classList.remove('selected');
+                noCircle.classList.remove('selected');
+                yesCircle.querySelector('.dot.yes').style.display = 'none';
+                noCircle.querySelector('.dot.no').style.display = 'none';
+    
+                // Mark selected option
+                if (answer === 'yes') {
+                    yesCircle.classList.add('selected');
+                    yesCircle.querySelector('.dot.yes').style.display = 'block';
+                } else {
+                    noCircle.classList.add('selected');
+                    noCircle.querySelector('.dot.no').style.display = 'block';
+                }
+            }
+    
+            // Submit All Votes
+            function submitAllVotes() {
+                const pollCards = document.querySelectorAll('.poll-card');
+                const votes = []; // Array to hold vote data
+                pollCards.forEach(pollCard => {
+                    const pollId = pollCard.querySelector('.circle').id.split('-')[2]; // Gets Poll ID
+                    const yesCircle = document.getElementById(`yes-circle-${pollId}`);
+                    const noCircle = document.getElementById(`no-circle-${pollId}`);
+    
+                    let response;
+                    if (yesCircle.classList.contains('selected')) {
+                        response = 'Yes';
+                    } else if (noCircle.classList.contains('selected')) {
+                        response = 'No';
+                    } else {
+                        alert("Please select an option for each question before submitting!"); // Alert for unselected options
+                        return; // Skip submitting if an option is not chosen.
+                    }
+    
+                    // Push the response to votes array
+                    votes.push({ pollId, response });
+                });
+    
+                // Send votes as an array to the PHP backend
+                fetch(`${apiUrl}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ votes })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message); // Notify user about the submission result
+                    viewPolls(); // Refresh polls after submission
+                })
+                .catch(error => console.error('Error submitting votes:', error));
+            }
+    
+            // Add a new poll to the database
+            document.getElementById("add-poll-button").addEventListener("click", () => {
+                const question = prompt("Enter poll question:");
+                if (question) {
+                    const pollData = { question, options: [] };
+                    fetch(`${apiUrl}?action=addPoll`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(pollData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        viewPolls(); // Refresh poll list
+                    })
+                    .catch(error => console.error('Error adding poll:', error));
+                } else {
+                    alert("Question is required!"); // Alert for validation
+                }
+            });
+    
+            // Event listener for viewing polls
+            document.getElementById("view-polls-button").addEventListener("click", viewPolls);
+        </script>
+        </section>
+        <section id="reports" class="report-section">
+            <h2>Reports</h2>
+            <form id="report-form">
+                <div class="input-group">
+                    <input type="text" name="report" id="report" placeholder=" " required>
+                    <label for="report">Write your report or suggestion...</label>
+                </div>
+                <button type="submit">Submit Report</button>
+            </form>
+            <div id="report-container" class="container">
+                <li class="suggestion">Consider using a different browser.</li>
+                <li class="suggestion">Check your internet connection.</li>
+                <li class="suggestion">Ensure your software is updated.</li>
+                <li class="suggestion">Clear your browser cache.</li>
+                <li class="suggestion">Reach out to support for further help.</li>,</div>
+    
+        </section>
+        
+        <script>
+            // Handle report submission
+            document.getElementById("report-form").addEventListener("submit", function(event) {
+                event.preventDefault(); // Prevent form submission
+                const reportText = document.getElementById("report").value;
+        
+                // Perform AJAX request to send report
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "report.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function() {
+                    if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                        const reportContainer = document.getElementById("report-container");
+                        
+                        // Add response (confirming submission) from the backend
+                        const reportElement = document.createElement("div");
+                        reportElement.textContent = 'Report submitted: ' + reportText;
+                        reportContainer.appendChild(reportElement);
+                        document.getElementById("report").value = ''; // Clear input field
+                    }
+                }
+        
+                // Send the request with the report data
+                xhr.send("report=" + encodeURIComponent(reportText));
+            });
+        </script>
+      <section id="notifications">
+        <h3>Notifiaction Center</h3>
+        <div id="notification-container">
+            <!-- Predefined Notifications -->
+            <div class="notification">
+                <span><h3>New policy update regarding waste disposal.</h3></span>
+                <div class="reply-container">
+                    <input type="text" class="response-input" id="response-input-1" placeholder="Type a reply..." />
+                    <button class="reply-btn" onclick="toggleResponse(1)">Reply</button>
+                </div>
+            </div>
+            <div class="notification">
+                <span><h3>Reminder: Community meeting scheduled for next Monday.</h3></span>
+                <div class="reply-container">
+                    <input type="text" class="response-input" id="response-input-2" placeholder="Type a reply..." />
+                    <button class="reply-btn" onclick="toggleResponse(2)">Reply</button>
+                </div>
+            </div>
+            <div class="notification">
+                <span><h3>Alert: Water supply scheduled maintenance on Tuesday.</h3></span>
+                <div class="reply-container">
+                    <input type="text" class="response-input" id="response-input-3" placeholder="Type a reply..." />
+                    <button class="reply-btn" onclick="toggleResponse(3)">Reply</button>
+                </div>
+            </div>
+            <div class="notification">
+                <span><h3> New parks opening in your area next weekend.</h3></span>
+                <div class="reply-container">
+                    <input type="text" class="response-input" id="response-input-4" placeholder="Type a reply..." />
+                    <button class="reply-btn" onclick="toggleResponse(4)">Reply</button>
+                </div>
+            </div>
+            <div class="notification">
+                <span><h3> Road repairs will commence from Thursday.</h3></span>
+                <div class="reply-container">
+                    <input type="text" class="response-input" id="response-input-5" placeholder="Type a reply..." />
+                    <button class="reply-btn" onclick="toggleResponse(5)">Reply</button>
+                </div>
+            </div>
+        </div>
+        
+        <form id="notification-form">
+            <div class="form-group">
+                <input type="text" class="form-control" id="notification-message" required placeholder="Enter a new notification...">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Notification</button>
+        </form>
+    </section>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Load initial notifications from the database (if applicable)
+            // loadNotifications(); // Uncomment if this function is implemented to load from server
+    
+            // Handle the submission of new notifications
+            $('#notification-form').on('submit', function(e) {
+                e.preventDefault(); // Prevent page reload
+                const message = $('#notification-message').val();
+                addNotification(message); // Call function to add new notification
+                $('#notification-message').val(''); // Clear input
+            });
+        });
+    
+        function addNotification(message) {
+            $.post('notification.php', {message: message}, function(response) {
+                if (response.success) { // Check server response
+                    loadNotifications(); // Refresh notifications after adding
+                } else {
+                    alert('Error adding notification.');
+                }
+            }, 'json'); // Expect a JSON response
+        }
+    
+        function toggleResponse(id) {
+            const input = $(`#response-input-${id}`);
+            input.toggle(); // Toggle visibility of the input field
+            input.focus(); // Focus on the input when it becomes visible
+        }
+    </script>
+        <section id="feedback">
+            <form action="submit_feedback.php" method="post">
+                <h2>Feedback</h2>
+                <div id="feedback-container"></div>
+                <input type="text" name="title" placeholder="Enter title" required />
+                <textarea id="feedback-input" name="description" placeholder="Enter your feedback" required></textarea>
+                <button type="submit">Submit Feedback</button>
+            </form>
+        </section>
+        <section id="charts">
+            <h2>Charts</h2>
+            <canvas id="myChart"></canvas>
+            <select id="chart-type" onchange="updateChart()">
+                <option value="bar">Bar Chart</option>
+                <option value="line">Line Chart</option>
+                <option value="pie">Pie Chart</option>
+            </select>
+        </section>
+    </main>
+
+    <script>
+          $(document).ready(function() {
+
+// Display default section
+
+showSection('polls');
+
+// Initialize chart and add event listeners
+
+initChart();
+
+$('nav ul li').on('click', function() {
+
+    showSection(this.id);
+
+});
+
+// Other event listeners for adding polls and submitting feedback
+
+});
+
+function showSection(sectionId) {
+
+$('main > section').hide(); // Hide all sections
+
+$(`#${sectionId}`).show(); // Show selected section
+
+}
+        // Data storage
+    
+        
+        // Function to display the selected section
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('main > section');
+            sections.forEach(section => {
+                section.style.display = section.id === sectionId ? 'block' : 'none';
+            });
+        }
+
+        // Event listeners for navigation
+        $('nav ul li').on('click', function() {
+            showSection(this.id);
+        });
+
+        // Initialize the charts
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let chartType = 'bar';
+        let myChart;
+
+        function initChart() {
+            myChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                    datasets: [{
+                        label: '# of Votes',
+                        data: [12, 19, 3, 5, 2, 3],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart type
+        function updateChart() {
+            chartType = document.getElementById('chart-type').value;
+            myChart.destroy(); // Destroy existing chart
+            initChart(); // Re-initialize chart
+        }
+
+        // Show the default section on load
+        showSection('polls');
+        // Initialize chart on load
+        initChart();
+    </script>
+</body>
+</html>
